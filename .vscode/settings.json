@@ -1,0 +1,9 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/venv/bin/python",
+  "pylint.args": [
+    "--load-plugins=pylint_django"
+  ],
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/backend"
+  ]
+}
