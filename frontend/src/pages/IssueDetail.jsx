@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';   
 import { getIssue } from '../api/releaseDeskApi';
+import BackButton from '../components/BackButton';
 
 function IssueDetail() {
     const { id } = useParams(); // Get issue ID from URL parameters
@@ -45,6 +46,7 @@ function IssueDetail() {
     }
     return (
         <div className="issue-detail">
+            <BackButton label="Back to Issues" className="back-button" />
             <h1>Issue Detail</h1>
             <h2>{issue.title}</h2>
             <p><strong>Description:</strong> {issue.description}</p>

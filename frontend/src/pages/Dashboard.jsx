@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { getDashboardSummary } from '../api/releaseDeskApi';
+import DashboardCard from '../components/DashboardCard';
 
 function Dashboard() {
     const [stats, setStats] = useState({
@@ -40,42 +42,45 @@ function Dashboard() {
     return (
         <div className="dashboard">
             <h1>ReleaseDesk Dashboard</h1>
-            <div className="stats">
-                <div className="stat-card">
-                    <h2>Open Issues</h2>
-                    <p>{stats.open_issues}</p>
-                </div>
-                <div className="stat-card">
-                    <h2>Critical Issues</h2>
-                    <p>{stats.critical_issues}</p>
-                </div>
-                <div className="stat-card">
-                    <h2>QA Ready</h2>
-                    <p>{stats.qa_ready}</p>
-                </div>
-                <div className="stat-card">
-                    <h2>Blocked</h2>
-                    <p>{stats.blocked}</p>
-                </div>
-                    <div className="stat-card">
-                    <h2>Upcoming Releases</h2>
-                    <p>{stats.upcoming_releases}</p>
-                </div>
-            </div>
+            <div className="dashboard-layout-grid">
+                <div className="dashboard-stat-row dashboard-stat-row-two-columns">
+                    <Link to="/issues" className="dashboard-link-card">
+                        <div className="dashboard-stat-group">
+                            <DashboardCard label="Open Issues" value={stats.open_issues} />
+                            <DashboardCard label="Critical Issues" value={stats.critical_issues} />
+                        </div>
+                    </Link>
 
-            <div className="recent-deployments">
-                <h2>Recent Deployments</h2>
-                {stats.recent_deployments.length === 0 ? (
-                    <p>No recent deployments found.</p>
-                ) : (
-                    <ul>
-                        {stats.recent_deployments.map((deployment) => (
-                            <li key={deployment.id}>
-                                {deployment.release__name} - {deployment.environment} - {deployment.status}
-                            </li>
-                        ))}
-                    </ul>
-                )}
+                    <div className="dashboard-stat-group">
+                        <DashboardCard label="QA Ready" value={stats.qa_ready} />
+                        <DashboardCard label="Blocked" value={stats.blocked} />
+                    </div>
+                </div>
+
+                <div className="dashboard-stat-row">
+                    <Link to="/releases" className="dashboard-link-card dashboard-stat-group-single-link">
+                        <div className="dashboard-stat-group dashboard-stat-group-single">
+                            <DashboardCard label="Upcoming Releases" value={stats.upcoming_releases} />
+                        </div>
+                    </Link>
+                </div>
+
+                <Link to="/deployment-logs" className="dashboard-link-card dashboard-row-full-link">
+                    <div className="recent-deployments dashboard-row-full">
+                        <h2>Recent Deployments</h2>
+                        {stats.recent_deployments.length === 0 ? (
+                            <p>No recent deployments found.</p>
+                        ) : (
+                            <ul>
+                                {stats.recent_deployments.map((deployment) => (
+                                    <li key={deployment.id}>
+                                        {deployment.release__name} - {deployment.environment} - {deployment.status}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                </Link>
             </div>
         </div>
     );

@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
 import DataTable from '../components/dataTable';
 import ResourceForm from '../components/ResourceForm';
+import useResourceCrud from '../hooks/useResourceCrud';
+import BackButton from '../components/BackButton';
 import {
     getReleases,
     createRelease,
@@ -8,92 +9,36 @@ import {
 } from '../api/releaseDeskApi';
 
 function Release() {
-    const [releases, setReleases] = useState([]);
-    const [formData, setFormData] = useState({
+    const initialReleaseFormData = {
         name: '',
         release_date: '',
         status: 'planned',
         summary: '',
-    });
-    const [loading, setLoading] = useState(true);
-    const [submitting, setSubmitting] = useState(false);
-    const [editingReleaseId, setEditingReleaseId] = useState(null);
-    const [error, setError] = useState(null);
-
-    useEffect(() => {
-        const fetchReleases = async () => {
-            try {
-                const releasesData = await getReleases();
-                setReleases(releasesData);
-            } catch (err) {
-                console.error('Error fetching releases:', err);
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchReleases();
-    }, []);
-
-    const handleChange = (event) => {
-        const { name, value } = event.target;
-
-        setFormData((prevData) => ({
-            ...prevData,
-            [name]: value,
-        }));
     };
 
-    const resetForm = () => {
-        setFormData({
-            name: '',
-            release_date: '',
-            status: 'planned',
-            summary: '',
-        });
-        setEditingReleaseId(null);
-    };
-
-    const handleEditClick = (release) => {
-        setEditingReleaseId(release.id);
-        setFormData({
+    const {
+        items: releases,
+        formData,
+        loading,
+        submitting,
+        error,
+        editingItemId: editingReleaseId,
+        handleChange,
+        resetForm,
+        handleEditClick,
+        handleSubmit,
+    } = useResourceCrud({
+        initialFormData: initialReleaseFormData,
+        getItems: getReleases,
+        createItem: createRelease,
+        updateItem: updateRelease,
+        mapItemToForm: (release) => ({
             name: release.name || '',
             release_date: release.release_date || '',
             status: release.status || 'planned',
             summary: release.summary || '',
-        });
-        setError(null);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    const handleSubmit = async (event) => {
-        event.preventDefault();
-        setSubmitting(true);
-
-        try {
-            if (editingReleaseId) {
-                const updatedRelease = await updateRelease(editingReleaseId, formData);
-
-                setReleases((prevReleases) => (
-                    prevReleases.map((release) => (
-                        release.id === editingReleaseId ? updatedRelease : release
-                    ))
-                ));
-            } else {
-                const newRelease = await createRelease(formData);
-                setReleases((prevReleases) => [...prevReleases, newRelease]);
-            }
-
-            resetForm();
-            setError(null);
-        } catch (err) {
-            console.error('Error saving release:', err);
-            setError(err.message);
-        } finally {
-            setSubmitting(false);
-        }
-    };
+        }),
+    });
 
     const releaseColumns = [
         { key: 'id', header: 'ID' },
@@ -105,11 +50,9 @@ function Release() {
             key: 'actions',
             header: 'Actions',
             render: (release) => (
-                <>
                 <button type="button" onClick={() => handleEditClick(release)}>
                     Edit
                 </button>
-                </>
             ),
         },
     ];
@@ -154,6 +97,7 @@ function Release() {
 
     return (
         <div className="releases">
+            <BackButton />
             <h1>Releases</h1>
 
             {error && <p className="error-message">{error}</p>}

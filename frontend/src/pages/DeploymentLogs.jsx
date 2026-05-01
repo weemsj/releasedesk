@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import DataTable from '../components/dataTable';
 import ResourceForm from '../components/ResourceForm';
+import BackButton from '../components/BackButton';
+import useResourceCrud from '../hooks/useResourceCrud';
 import {
     getDeploymentLogs,
     getReleases,
@@ -8,58 +10,45 @@ import {
 } from '../api/releaseDeskApi';
 
 function DeploymentLogs() {
-    const [logs, setLogs] = useState([]);
     const [releases, setReleases] = useState([]);
-    const [formData, setFormData] = useState({
+    const [releaseError, setReleaseError] = useState(null);
+
+    const initialDeploymentLogFormData = {
         release: '',
         environment: 'qa',
         status: 'started',
         notes: '',
         deployed_by: '',
+    };
+
+    const {
+        items: logs,
+        formData,
+        loading,
+        submitting,
+        error,
+        handleChange,
+        handleSubmit,
+    } = useResourceCrud({
+        initialFormData: initialDeploymentLogFormData,
+        getItems: getDeploymentLogs,
+        createItem: createDeploymentLog,
     });
-    const [loading, setLoading] = useState(true);
-    const [submitting, setSubmitting] = useState(false);
-    const [error, setError] = useState(null);
 
     useEffect(() => {
-        const fetchPageData = async () => {
+        const fetchReleases = async () => {
             try {
-                const [logsData, releasesData] = await Promise.all([
-                    getDeploymentLogs(),
-                    getReleases(),
-                ]);
-
-                setLogs(logsData);
+                const releasesData = await getReleases();
                 setReleases(releasesData);
+                setReleaseError(null);
             } catch (err) {
-                console.error('Error fetching deployment log page data:', err);
-                setError(err.message);
-            } finally {
-                setLoading(false);
+                console.error('Error fetching releases for deployment log dropdown:', err);
+                setReleaseError(err.message);
             }
         };
 
-        fetchPageData();
+        fetchReleases();
     }, []);
-
-    const handleChange = (event) => {
-        const { name, value } = event.target;
-
-        setFormData((prevData) => ({
-            ...prevData,
-            [name]: value,
-        }));
-    };
-
-    const resetForm = () => {
-        setFormData({
-            release: '',
-            environment: 'qa',
-            status: 'started',
-            notes: '',
-            deployed_by: '',
-        });
-    };
 
     const formatDateTime = (dateTimeString) => {
         if (!dateTimeString) {
@@ -75,23 +64,6 @@ function DeploymentLogs() {
     const getReleaseName = (releaseId) => {
         const matchingRelease = releases.find((release) => String(release.id) === String(releaseId));
         return matchingRelease ? matchingRelease.name : `Release #${releaseId}`;
-    };
-
-    const handleSubmit = async (event) => {
-        event.preventDefault();
-        setSubmitting(true);
-
-        try {
-            const newDeploymentLog = await createDeploymentLog(formData);
-            setLogs((prevLogs) => [...prevLogs, newDeploymentLog]);
-            resetForm();
-            setError(null);
-        } catch (err) {
-            console.error('Error creating deployment log:', err);
-            setError(err.message);
-        } finally {
-            setSubmitting(false);
-        }
     };
 
     const deploymentLogColumns = [
@@ -159,9 +131,11 @@ function DeploymentLogs() {
 
     return (
         <div className="deployment-logs">
+            <BackButton />
             <h1>Deployment Logs</h1>
 
             {error && <p className="error-message">{error}</p>}
+            {releaseError && <p className="error-message">{releaseError}</p>}
 
             <ResourceForm
                 title="Create Deployment Log"

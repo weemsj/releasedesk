@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import DataTable from '../components/dataTable';
 import ResourceForm from '../components/ResourceForm';
+import useResourceCrud from '../hooks/useResourceCrud';
+import BackButton from '../components/BackButton';
 import {
     getIssues,
     createIssue,
@@ -10,8 +11,7 @@ import {
 } from '../api/releaseDeskApi';
 
 function Issues() {
-    const [issues, setIssues] = useState([]);
-    const [formData, setFormData] = useState({
+    const initialIssueFormData = {
         title: '',
         description: '',
         issue_type: 'bug',
@@ -20,117 +20,40 @@ function Issues() {
         reported_by: '',
         assigned_to: '',
         environment: 'qa',
+    };
+
+    const {
+        items: issues,
+        formData,
+        loading,
+        submitting,
+        error,
+        editingItemId: editingIssueId,
+        handleChange,
+        resetForm,
+        handleEditClick,
+        handleDeleteClick,
+        handleSubmit,
+    } = useResourceCrud({
+        initialFormData: initialIssueFormData,
+        getItems: getIssues,
+        createItem: createIssue,
+        updateItem: updateIssue,
+        deleteItem: deleteIssue,
+        mapItemToForm: (issue) => ({
+            title: issue.title || '',
+            description: issue.description || '',
+            issue_type: issue.issue_type || 'bug',
+            priority: issue.priority || 'medium',
+            status: issue.status || 'new',
+            reported_by: issue.reported_by || '',
+            assigned_to: issue.assigned_to || '',
+            environment: issue.environment || 'qa',
+        }),
+        getDeleteMessage: (issue) => (
+            `Are you sure you want to delete Issue #${issue.id}: "${issue.title}"?`
+        ),
     });
-    const [loading, setLoading] = useState(true);
-    const [submitting, setSubmitting] = useState(false);
-    const [error, setError] = useState(null);
-    const [editingIssueId, setEditingIssueId] = useState(null);
-
-    useEffect(() => {
-        // Fetch issues from the backend
-        const fetchIssues = async () => {
-            try {
-                const issuesData = await getIssues();
-                setIssues(issuesData);
-            } catch (err) {
-                console.error('Error fetching issues:', err);
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchIssues();
-    }, []);
-
-    // Handle form input changes for both creating and editing issues    
-    const handleChange = (event) => {
-        const { name, value } = event.target;
-
-        setFormData((prevData) => ({
-            ...prevData,
-            [name]: value,
-        }));
-    };
-
-    // Reset form to initial state and clear editing state
-    const resetForm = () => {
-        setFormData({
-            title: '',
-            description: '',
-            issue_type: 'bug',
-            priority: 'medium',
-            status: 'new',
-            reported_by: '',
-            assigned_to: '',
-            environment: 'qa',
-        });
-        setEditingIssueId(null);
-    };
-
-    // Handle edit button click - populate form with issue data and set editing state
-    const handleEditClick = (issue) => {
-        setEditingIssueId(issue.id);
-        setFormData({
-            title: issue.title,
-            description: issue.description,
-            issue_type: issue.issue_type,
-            priority: issue.priority,
-            status: issue.status,
-            reported_by: issue.reported_by,
-            assigned_to: issue.assigned_to,
-            environment: issue.environment,
-        });
-        setError(null);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    // Handle delete button click - delete issue and update state
-    const handleDeleteClick = async (issue) => {
-        const confirmed = window.confirm(`Are you sure you want to delete issue #${issue.id}?`);
-        if (!confirmed) return;
-        
-        try {
-            await deleteIssue(issue.id);
-            setIssues((prevIssues) => prevIssues.filter((currentIssue) => currentIssue.id !== issue.id));
-
-            if (editingIssueId === issue.id) {
-                resetForm();
-            }
-            setError(null);
-        } catch (err) {
-            console.error('Error deleting issue:', err);
-            setError(err.message);
-        }
-    };
-    
-    // Handle form submission for both creating new issues and updating existing ones
-    const handleSubmit = async (event) => {
-        event.preventDefault();
-        setSubmitting(true);
-
-        try {
-            if (editingIssueId) {
-                const updatedIssue = await updateIssue(editingIssueId, formData);
-                setIssues((prevIssues) => (
-                    prevIssues.map((issue) => (
-                        issue.id === editingIssueId ? updatedIssue : issue
-                    ))
-                ));
-            } else {
-                const newIssue = await createIssue(formData);
-                setIssues((prevIssues) => [...prevIssues, newIssue]);
-            }
-
-            resetForm();
-            setError(null);
-        } catch (err) {
-            console.error('Error saving issue:', err);
-            setError(err.message);
-        } finally {
-            setSubmitting(false);
-        }
-    };
 
     const issueColumns = [
         { key: 'id', header: 'ID' },
@@ -232,6 +155,7 @@ function Issues() {
 
     return (
         <div className="issues-page">
+        <BackButton />
             <h1>Issues</h1>
 
             {error && <p className="error-message">{error}</p>}
