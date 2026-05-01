@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api';
-
+import { getDashboardSummary } from '../api/releaseDeskApi';
 
 function Dashboard() {
     const [stats, setStats] = useState({
-                open_issues: 0,
+        open_issues: 0,
         critical_issues: 0,
         qa_ready: 0,
         blocked: 0,
@@ -21,11 +18,11 @@ function Dashboard() {
         // Fetch dashboard stats from the backend
         const fetchStats = async () => {
             try {
-                const response = await axios.get(`${API_BASE_URL}/dashboard-summary/`);
-                setStats(response.data);
+                const summary = await getDashboardSummary();
+                setStats(summary);
             } catch (err) {
                 console.error('Error fetching dashboard summary:', err);
-                setError('Unable to load dashboard summary. Make sure the Django backend is running.');
+                setError(err.message);
             } finally {
                 setLoading(false);
             }
