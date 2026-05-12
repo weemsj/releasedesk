@@ -10,6 +10,7 @@ from .views import (
     QANoteViewSet,
     DeploymentLogViewSet,
     DashboardSummary,
+    release_readiness
 )
 
 router = DefaultRouter()
@@ -21,4 +22,5 @@ router.register(r"deployment-logs", DeploymentLogViewSet)
 urlpatterns = [
     path("", include(router.urls)),
     path("dashboard-summary/", DashboardSummary.as_view(), name="dashboard-summary"),
+    path("release-readiness/", release_readiness, name="release-readiness"),
 ]

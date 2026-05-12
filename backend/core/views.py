@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.decorators import api_view
 from .models import Issue, Release, QANote, DeploymentLog
 from .serializers import IssueSerializer, ReleaseSerializer, QANoteSerializer, DeploymentLogSerializer
 
@@ -63,3 +64,35 @@ class DashboardSummary(APIView):
                 ),
         }
         return Response(summary)
+    
+@api_view(['GET'])
+def release_readiness(request):
+    """Return a quick summary of release readiness using existing Issue and Release data."""
+    # release table data
+    planned_releases = Release.objects.filter(status="planned").count()
+    qa_testing_releases = Release.objects.filter(status="qa_testing").count()
+    prod_test_releases = Release.objects.filter(status="prod_test").count()
+    deployed_releases = Release.objects.filter(status="deployed").count()
+    rollback_needed_releases = Release.objects.filter(status="rollback_needed").count()
+    # issue table data
+    critical_issues = Issue.objects.filter(priority="critical").count()
+    blocked_issues = Issue.objects.filter(status="blocked").count()
+    release_blockers = critical_issues + blocked_issues
+
+    ready_for_release = (
+        release_blockers == 0
+        and rollback_needed_releases == 0
+        and prod_test_releases > 0
+    )
+
+    return Response({
+        "planned_releases": planned_releases,
+        "qa_testing_releases": qa_testing_releases,
+        "prod_test_releases": prod_test_releases,
+        "deployed_releases": deployed_releases,
+        "rollback_needed_releases": rollback_needed_releases,
+        "critical_issues": critical_issues,
+        "blocked_issues": blocked_issues,
+        "release_blockers": release_blockers,
+        "ready_for_release": ready_for_release,
+})

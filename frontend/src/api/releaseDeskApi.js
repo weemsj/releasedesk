@@ -83,6 +83,7 @@ const deleteData = async (endpoint, id, fallbackMessage = 'Unable to delete reco
 };
 
 export const getDashboardSummary = () => getData('/dashboard-summary/', 'Unable to load dashboard summary.');
+export const getReleaseReadiness = () => getData('/release-readiness/', 'Unable to load release readiness data.');
 
 export const getIssues = () => getData('/issues/', 'Unable to load issues.');
 export const getIssue = (id) => getData(`/issues/${id}/`, 'Unable to load issue details.');
