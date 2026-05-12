@@ -1,25 +1,16 @@
 # ReleaseDesk
 
-ReleaseDesk is a small internal web application built to practice full-stack web development patterns used in real business applications. The app helps a digital products or engineering team track user-reported issues, release candidates, QA validation notes, and deployment activity.
+ReleaseDesk is an internal release management web application built with Django REST Framework, React, PostgreSQL, and Docker. The app helps teams track user-reported issues, planned releases, QA validation notes, deployment activity, dashboard metrics, and release readiness.
 
-This project was designed as interview preparation for a Web Application Developer role focused on Django, React, SQL databases, RESTful APIs, testing, Docker, Linux-based workflows, and AI-augmented development.
+This project was built as a practical full-stack interview preparation project focused on Django, React, REST APIs, PostgreSQL, Docker, session authentication, role-based access control, CSRF protection, reusable frontend architecture, and backend API testing.
 
 ---
 
 ## Project Purpose
 
-The goal of ReleaseDesk is to model a lightweight internal platform used by teams that support and enhance business-critical web applications.
+ReleaseDesk models a lightweight internal platform used by digital products, engineering, QA, and operations teams that support business-critical web applications.
 
-The app focuses on practical workflows such as:
-
-- Tracking bugs, feature requests, and support issues
-- Managing release readiness
-- Recording QA validation notes
-- Logging deployment activity
-- Viewing dashboard-level reporting
-- Practicing backend/frontend/API/database integration
-- Practicing Docker-based local development
-- Practicing testing and documentation habits
+The project focuses on practical workflows such as tracking bugs, managing release readiness, recording QA validation notes, logging deployment activity, viewing dashboard-level reporting, practicing Docker-based local development, and validating session authentication with role-based access control.
 
 This is intentionally scoped as a small but realistic internal tool, not a large production SaaS product.
 
@@ -33,29 +24,29 @@ This is intentionally scoped as a small but realistic internal tool, not a large
 - Django
 - Django REST Framework
 - PostgreSQL
-- Django TestCase or pytest
+- Django Sessions
+- Django Groups
+- CSRF protection
 - django-cors-headers
+- python-dotenv
+- Django test framework / DRF APITestCase
 
 ### Frontend
 
 - React
 - Vite
 - JavaScript
-- Fetch API or Axios
 - React Router
-
-### Database
-
-- PostgreSQL through Docker Compose
-- SQLite may be used as a local fallback during early development
+- Axios
+- CSS
 
 ### DevOps / Tooling
 
 - Docker
 - Docker Compose
 - Git / GitHub
-- Linux terminal commands
-- Optional cloud deployment with Render, Railway, Fly.io, or DigitalOcean App Platform
+- Linux terminal workflows
+- Environment variable configuration through `.env`
 
 ---
 
@@ -65,128 +56,159 @@ This is intentionally scoped as a small but realistic internal tool, not a large
 
 Users can create and manage internal issues such as bugs, feature requests, and support tasks.
 
-Issue fields include:
-
-- Title
-- Description
-- Issue type
-- Priority
-- Status
-- Reported by
-- Assigned to
-- Environment
-- Created date
-- Updated date
+Issue fields include title, description, issue type, priority, status, reported by, assigned to, environment, created date, and updated date.
 
 ### Release Tracking
 
 Users can create and manage planned releases.
 
-Release fields include:
-
-- Name
-- Release date
-- Status
-- Summary
-- Created date
-- Updated date
+Release fields include name, release date, status, summary, created date, and updated date.
 
 ### QA Notes
 
-Users can attach QA validation notes to issues.
+Users can attach QA validation notes to specific issues.
 
-QA note fields include:
-
-- Related issue
-- Tester name
-- Result
-- Notes
-- Created date
+QA notes are displayed on the Issue Detail page through a reusable `QANotesPanel` component.
 
 ### Deployment Logs
 
-Users can track deployment events by release and environment.
+Users can track deployment activity by release and environment.
 
-Deployment log fields include:
-
-- Related release
-- Environment
-- Status
-- Notes
-- Deployed by
-- Created date
+Deployment log fields include related release, environment, status, notes, deployed by, and created date.
 
 ### Dashboard Summary
 
-The dashboard provides a quick overview of platform status, including:
+The dashboard provides a high-level overview of platform status, including open issues, critical issues, QA-ready issues, blocked issues, upcoming releases, and recent deployments.
 
-- Open issues
-- Critical issues
-- QA-ready issues
-- Blocked issues
-- Upcoming releases
-- Recent deployment logs
+### Release Readiness
+
+ReleaseDesk includes a release readiness endpoint that summarizes release status and blockers.
+
+The release readiness endpoint helps answer:
+
+> Are we ready to release?
+
+It evaluates planned releases, QA testing releases, prod test releases, deployed releases, rollback-needed releases, critical issues, blocked issues, release blockers, and ready-for-release status.
 
 ---
 
-## Planned Pages
+## Authentication & Authorization
 
-### Dashboard
+ReleaseDesk uses Django session-based authentication.
 
-Displays summary cards and recent deployment activity.
+Authentication features include:
 
-Example cards:
+- Login
+- Logout
+- Current session user endpoint
+- Account page
+- Profile editing
+- CSRF-protected unsafe requests
+- Frontend auth context
+- Protected frontend routes
 
-- Open Issues
-- Critical Issues
-- QA Ready
-- Blocked
-- Upcoming Releases
+Authorization uses Django Groups as roles.
 
-### Issues Page
+Supported roles:
 
-Displays a table of issues with filtering and search.
+- Admin
+- Developer
+- QA
+- Viewer
 
-Planned functionality:
+### RBAC Behavior
 
-- View all issues
-- Search issues by title
-- Filter by status
-- Filter by priority
-- Create new issue
-- Update issue status
+Admin users can perform full CRUD actions.
 
-### Issue Detail Page
+Developer users can create and edit issues, releases, and deployment logs, but cannot perform restricted admin actions.
 
-Displays a single issue and related QA notes.
+QA users can view issues and releases, add QA notes, and create deployment logs.
 
-Planned functionality:
+Viewer users can view permitted data but cannot create, update, or delete records.
 
-- View issue details
-- Update status
-- Add QA note
-- Review validation history
+Backend permissions are the source of truth. Frontend role-aware rendering only improves the user experience by hiding unavailable actions.
 
-### Releases Page
+---
 
-Displays planned and completed releases.
+## Project Structure
 
-Planned functionality:
-
-- View all releases
-- Create release
-- Update release status
-- Review release summary
-
-### Deployment Logs Page
-
-Displays deployment activity.
-
-Planned functionality:
-
-- View deployment history
-- Add deployment log
-- Track deployment environment and status
+```txt
+releasedesk/
+├── backend/
+│   ├── core/
+│   │   ├── management/
+│   │   │   ├── __init__.py
+│   │   │   └── commands/
+│   │   │       ├── __init__.py
+│   │   │       └── seed_roles.py
+│   │   ├── migrations/
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── models.py
+│   │   ├── permissions.py
+│   │   ├── serializers.py
+│   │   ├── tests.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   │
+│   ├── releasedesk/
+│   │   ├── __init__.py
+│   │   ├── asgi.py
+│   │   ├── settings.py
+│   │   ├── urls.py
+│   │   └── wsgi.py
+│   │
+│   ├── Dockerfile
+│   ├── manage.py
+│   └── requirements.txt
+│
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── api/
+│   │   │   └── releaseDeskApi.js
+│   │   │
+│   │   ├── components/
+│   │   │   ├── AuthStatus.jsx
+│   │   │   ├── BackButton.jsx
+│   │   │   ├── DashboardCard.jsx
+│   │   │   ├── ProtectedRoute.jsx
+│   │   │   ├── QANotesPanel.jsx
+│   │   │   ├── ResourceForm.jsx
+│   │   │   └── dataTable.jsx
+│   │   │
+│   │   ├── context/
+│   │   │   └── AuthContext.jsx
+│   │   │
+│   │   ├── hooks/
+│   │   │   └── useResourceCrud.js
+│   │   │
+│   │   ├── pages/
+│   │   │   ├── Account.jsx
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── DeploymentLogs.jsx
+│   │   │   ├── IssueDetail.jsx
+│   │   │   ├── Issues.jsx
+│   │   │   ├── Login.jsx
+│   │   │   └── Release.jsx
+│   │   │
+│   │   ├── App.css
+│   │   ├── App.jsx
+│   │   ├── index.css
+│   │   └── main.jsx
+│   │
+│   ├── Dockerfile
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── package.json
+│   ├── package-lock.json
+│   └── vite.config.js
+│
+├── docker-compose.yml
+├── README.md
+└── .gitignore
+```
 
 ---
 
@@ -247,120 +269,188 @@ created_at
 
 ## API Endpoints
 
+### Auth / Session
+
+```txt
+GET    /api/csrf/
+POST   /api/login/
+POST   /api/logout/
+GET    /api/session-user/
+PATCH  /api/session-user/
+```
+
 ### Issues
 
 ```txt
-GET    /api/issues/
-POST   /api/issues/
-GET    /api/issues/:id/
-PATCH  /api/issues/:id/
-DELETE /api/issues/:id/
+GET     /api/issues/
+POST    /api/issues/
+GET     /api/issues/:id/
+PATCH   /api/issues/:id/
+DELETE  /api/issues/:id/
 ```
 
 ### Releases
 
 ```txt
-GET    /api/releases/
-POST   /api/releases/
-GET    /api/releases/:id/
-PATCH  /api/releases/:id/
+GET     /api/releases/
+POST    /api/releases/
+GET     /api/releases/:id/
+PATCH   /api/releases/:id/
+DELETE  /api/releases/:id/
 ```
 
 ### QA Notes
 
 ```txt
-GET    /api/qa-notes/
-POST   /api/qa-notes/
+GET     /api/qa-notes/
+POST    /api/qa-notes/
+GET     /api/qa-notes/:id/
+PATCH   /api/qa-notes/:id/
+DELETE  /api/qa-notes/:id/
 ```
 
 ### Deployment Logs
 
 ```txt
-GET    /api/deployment-logs/
-POST   /api/deployment-logs/
+GET     /api/deployment-logs/
+POST    /api/deployment-logs/
+GET     /api/deployment-logs/:id/
+PATCH   /api/deployment-logs/:id/
+DELETE  /api/deployment-logs/:id/
 ```
 
-### Dashboard Summary
+### Dashboard / Summary
 
 ```txt
 GET /api/dashboard-summary/
+GET /api/release-readiness/
+```
+
+---
+
+## Release Readiness Endpoint
+
+The release readiness endpoint summarizes whether the system is ready for release based on release statuses and issue blockers.
+
+```txt
+GET /api/release-readiness/
 ```
 
 Example response:
 
 ```json
 {
-  "open_issues": 12,
-  "critical_issues": 2,
-  "qa_ready": 4,
-  "blocked": 1,
-  "upcoming_releases": 2
+  "planned_releases": 1,
+  "qa_testing_releases": 0,
+  "prod_test_releases": 1,
+  "deployed_releases": 0,
+  "rollback_needed_releases": 0,
+  "critical_issues": 1,
+  "blocked_issues": 1,
+  "release_blockers": 2,
+  "ready_for_release": false
 }
 ```
 
+This endpoint demonstrates the workflow for adding a new API endpoint:
+
+- Update models only if new stored data is needed
+- Update serializers if request or response model serialization changes
+- Update views for endpoint logic
+- Update URLs to expose the route
+- Update frontend API client if the UI consumes the endpoint
+- Add tests for behavior and response shape
+
 ---
 
-## Project Structure
+## Environment Variables
+
+Create a `.env` file in the project root.
+
+Example:
+
+```env
+POSTGRES_DB=releasedesk
+POSTGRES_USER=releasedesk_user
+POSTGRES_PASSWORD=releasedesk_password
+POSTGRES_HOST=db
+POSTGRES_PORT=5432
+
+DJANGO_SECRET_KEY='replace-this-dev-secret-key'
+DJANGO_DEBUG=True
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,backend
+
+VITE_API_BASE_URL=http://localhost:8000/api
+```
+
+Important: if your `DJANGO_SECRET_KEY` contains a `$`, wrap it in single quotes so Docker Compose does not interpret part of it as an environment variable.
+
+Do not commit `.env` to GitHub.
+
+---
+
+## Running the Project with Docker
+
+From the project root:
+
+```bash
+docker compose up --build
+```
+
+The app will be available at:
 
 ```txt
-releasedesk/
-  backend/
-    manage.py
-    releasedesk/
-      settings.py
-      urls.py
-    core/
-      models.py
-      serializers.py
-      views.py
-      urls.py
-      tests.py
-    requirements.txt
-    Dockerfile
-
-  frontend/
-    src/
-      api/
-        client.js
-      components/
-        IssueTable.jsx
-        DashboardCard.jsx
-        StatusBadge.jsx
-      pages/
-        Dashboard.jsx
-        Issues.jsx
-        IssueDetail.jsx
-        Releases.jsx
-        DeploymentLogs.jsx
-      App.jsx
-      main.jsx
-    package.json
-    Dockerfile
-
-  docker-compose.yml
-  README.md
-  QA_CHECKLIST.md
-  .env.example
+Frontend: http://localhost:5173
+Backend:  http://localhost:8000/api
+Admin:    http://localhost:8000/admin
 ```
 
 ---
 
-## Getting Started
+## Database Setup
 
-### Prerequisites
+After containers are running, apply migrations:
 
-Install the following:
+```bash
+docker compose exec backend python manage.py makemigrations
+docker compose exec backend python manage.py migrate
+```
 
-- Python 3.12+
-- Node.js 20+
-- Docker Desktop
-- Git
+Create a superuser:
 
-Optional:
+```bash
+docker compose exec backend python manage.py createsuperuser
+```
 
-- Postman or Insomnia for API testing
-- VS Code
-- PostgreSQL client tool such as pgAdmin or TablePlus
+Seed the default RBAC groups:
+
+```bash
+docker compose exec backend python manage.py seed_roles
+```
+
+Default groups created:
+
+```txt
+Admin
+Developer
+QA
+Viewer
+```
+
+---
+
+## Recommended Test Users
+
+Create these users in Django Admin and assign them to the matching groups:
+
+| Username | Password | Group | Purpose |
+|---|---|---|---|
+| admin_user | testpass123 | Admin | Full access |
+| developer_user | testpass123 | Developer | Developer workflow |
+| qa_user | testpass123 | QA | QA validation workflow |
+| viewer_user | testpass123 | Viewer | Read-only workflow |
+
+Avoid using only a superuser for RBAC testing because superusers bypass normal group restrictions.
 
 ---
 
@@ -374,19 +464,10 @@ python -m venv venv
 source venv/bin/activate
 ```
 
-For Windows PowerShell:
-
-```powershell
-cd backend
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-```
-
 Install dependencies:
 
 ```bash
-pip install django djangorestframework psycopg2-binary django-cors-headers
-pip freeze > requirements.txt
+pip install -r requirements.txt
 ```
 
 Run migrations:
@@ -414,6 +495,8 @@ Backend should run at:
 http://localhost:8000
 ```
 
+Note: if running Django locally outside Docker, your database host should likely be `localhost` instead of `db`.
+
 ---
 
 ## Local Frontend Setup Without Docker
@@ -434,90 +517,179 @@ http://localhost:5173
 
 ---
 
-## Docker Setup
+## Frontend Architecture
 
-The recommended development setup uses Docker Compose to run:
+### Centralized API Client
 
-- Django backend
-- React frontend
-- PostgreSQL database
-
-From the project root:
-
-```bash
-docker compose up --build
-```
-
-Run database migrations inside the backend container:
-
-```bash
-docker compose exec backend python manage.py makemigrations
-docker compose exec backend python manage.py migrate
-```
-
-Create a Django admin user:
-
-```bash
-docker compose exec backend python manage.py createsuperuser
-```
-
-Access the app:
+All frontend API calls are centralized in:
 
 ```txt
-Frontend: http://localhost:5173
-Backend:  http://localhost:8000
-Admin:    http://localhost:8000/admin
-API:      http://localhost:8000/api
+frontend/src/api/releaseDeskApi.js
+```
+
+This file handles:
+
+- API base URL configuration
+- Axios setup
+- Session cookies
+- CSRF headers
+- Centralized error handling
+- Resource-specific API functions
+
+### Auth Context
+
+Authentication state is managed globally in:
+
+```txt
+frontend/src/context/AuthContext.jsx
+```
+
+This provides:
+
+- Current user
+- Login
+- Logout
+- Account update
+- Role checking
+- Auth loading state
+
+### Shared CRUD Hook
+
+Repeated CRUD state and handlers are centralized in:
+
+```txt
+frontend/src/hooks/useResourceCrud.js
+```
+
+This handles:
+
+- Loading state
+- Error state
+- Form state
+- Submit behavior
+- Edit behavior
+- Delete behavior
+- Reset behavior
+
+### Reusable Components
+
+Key reusable components include:
+
+```txt
+AuthStatus.jsx
+BackButton.jsx
+DashboardCard.jsx
+ProtectedRoute.jsx
+QANotesPanel.jsx
+ResourceForm.jsx
+dataTable.jsx
+```
+
+### Pages
+
+```txt
+Account.jsx
+Dashboard.jsx
+DeploymentLogs.jsx
+IssueDetail.jsx
+Issues.jsx
+Login.jsx
+Release.jsx
 ```
 
 ---
 
-## Example Docker Compose Configuration
+## CSRF and Session Authentication
 
-```yaml
-services:
-  db:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: releasedesk
-      POSTGRES_USER: releasedesk_user
-      POSTGRES_PASSWORD: releasedesk_password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+Because ReleaseDesk uses Django session authentication, unsafe requests require CSRF protection.
 
-  backend:
-    build: ./backend
-    command: python manage.py runserver 0.0.0.0:8000
-    volumes:
-      - ./backend:/app
-    ports:
-      - "8000:8000"
-    environment:
-      DB_NAME: releasedesk
-      DB_USER: releasedesk_user
-      DB_PASSWORD: releasedesk_password
-      DB_HOST: db
-      DB_PORT: 5432
-    depends_on:
-      - db
+Unsafe requests include:
 
-  frontend:
-    build: ./frontend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    ports:
-      - "5173:5173"
-    environment:
-      VITE_API_BASE_URL: http://localhost:8000/api
-    depends_on:
-      - backend
-
-volumes:
-  postgres_data:
+```txt
+POST
+PATCH
+PUT
+DELETE
 ```
+
+The frontend API client retrieves a CSRF token from:
+
+```txt
+GET /api/csrf/
+```
+
+Then sends the token with unsafe requests using:
+
+```txt
+X-CSRFToken: <token>
+```
+
+The Axios client also sends cookies with requests using:
+
+```txt
+withCredentials: true
+```
+
+This allows Django sessions to work correctly across the React frontend and Django backend during local development.
+
+---
+
+## Testing
+
+Run the backend test suite:
+
+```bash
+docker compose exec backend python manage.py test core
+```
+
+The test suite covers:
+
+- Issue CRUD API behavior
+- Release CRUD API behavior
+- QA note API behavior
+- Deployment log API behavior
+- Dashboard summary response
+- Release readiness response
+- Session login behavior
+- Logout session clearing
+- CSRF token endpoint
+- Account update behavior
+- RBAC allowed actions
+- RBAC denied actions
+- Privilege escalation prevention
+
+Example successful test run:
+
+```txt
+Found 48 test(s).
+System check identified no issues.
+OK
+```
+
+---
+
+## RBAC Test Coverage
+
+The RBAC tests verify both positive and negative cases.
+
+Examples:
+
+- Unauthenticated users cannot access protected issue endpoints
+- Viewer users can read issues
+- Viewer users cannot create issues
+- Developer users can create issues
+- Developer users cannot delete issues
+- Admin users can delete issues
+- QA users can create QA notes
+- QA users cannot create releases
+- QA users can create deployment logs
+- Viewer users cannot create deployment logs
+- Users cannot update their own roles
+- Users cannot assign themselves admin privileges
+- Logout clears the authenticated session
+- Account updates return updated profile fields
+
+The most important principle: RBAC should be enforced on the backend. Frontend role-aware rendering is helpful, but it is not security.
 
 ---
 
@@ -556,7 +728,7 @@ docker compose exec backend bash
 Run Django tests:
 
 ```bash
-docker compose exec backend python manage.py test
+docker compose exec backend python manage.py test core
 ```
 
 Stop containers:
@@ -573,309 +745,50 @@ docker compose down -v
 
 ---
 
-## Useful Linux Commands Practiced
-
-```bash
-ls
-cd
-pwd
-cat
-less
-grep
-tail -f
-ps aux
-chmod
-chown
-env
-printenv
-```
-
-Example log inspection:
-
-```bash
-docker compose logs backend | grep ERROR
-```
-
----
-
-## Testing
-
-Backend tests should cover:
-
-- Creating an issue
-- Listing issues
-- Updating issue status
-- Creating a QA note
-- Creating a release
-- Creating a deployment log
-- Dashboard summary counts
-
-Run tests locally:
-
-```bash
-cd backend
-python manage.py test
-```
-
-Run tests in Docker:
-
-```bash
-docker compose exec backend python manage.py test
-```
-
-Example test names:
-
-```txt
-test_can_create_issue
-test_can_list_issues
-test_can_update_issue_status
-test_can_create_qa_note
-test_dashboard_summary_counts_open_issues
-```
-
----
-
-## QA Checklist
-
-A separate `QA_CHECKLIST.md` file should be used to manually validate the application before considering it complete.
-
-Suggested checklist:
-
-```md
-# QA Checklist
-
-## Issue Workflow
-- [ ] User can create a new issue
-- [ ] User can view issue list
-- [ ] User can filter by status
-- [ ] User can filter by priority
-- [ ] User can update issue status
-- [ ] User can add QA note
-
-## Release Workflow
-- [ ] User can create release
-- [ ] User can view releases
-- [ ] User can update release status
-- [ ] User can add deployment log
-
-## Dashboard
-- [ ] Open issue count is accurate
-- [ ] Critical issue count is accurate
-- [ ] QA-ready count is accurate
-- [ ] Blocked issue count is accurate
-- [ ] Upcoming release count is accurate
-
-## Regression
-- [ ] Existing issues still load
-- [ ] Existing releases still load
-- [ ] API returns expected JSON
-- [ ] Frontend handles API errors
-- [ ] Backend logs do not show unexpected errors
-```
-
----
-
-## Environment Variables
-
-Create a `.env.example` file in the root or backend folder.
-
-Example:
-
-```env
-DEBUG=True
-SECRET_KEY=replace-this-with-a-local-dev-secret
-
-DB_NAME=releasedesk
-DB_USER=releasedesk_user
-DB_PASSWORD=releasedesk_password
-DB_HOST=db
-DB_PORT=5432
-
-CORS_ALLOWED_ORIGINS=http://localhost:5173
-```
-
-Frontend example:
-
-```env
-VITE_API_BASE_URL=http://localhost:8000/api
-```
-
-Do not commit real secrets to GitHub.
-
----
 
 ## Security Notes
 
-This project is for interview preparation and local development practice.
+This project is for interview preparation and local development practice, but it intentionally includes real-world security concepts.
 
-Security concepts to discuss or improve:
+Security practices included:
 
-- Store secrets in environment variables
-- Do not commit `.env` files
-- Use Django authentication for protected routes
-- Validate API input through serializers
-- Use proper HTTP status codes
-- Add permissions before production use
-- Limit CORS origins in deployed environments
-- Avoid exposing sensitive fields in API responses
+- Session-based authentication
+- CSRF protection
+- Backend-enforced role permissions
+- Protected frontend routes
+- Account updates without role editing
+- Privilege escalation prevention tests
+- Environment variables for secrets
+- `.env` excluded from Git
 
----
+Security concepts to improve before production:
 
-## Optional Stretch Features
-
-These are not required for the initial version.
-
-### Authentication
-
-Add Django authentication or token-based authentication.
-
-Potential additions:
-
-- Login
-- Logout
-- Protected routes
-- User-specific issue assignment
-- Permissions by role
-
-### Issue-to-Release Relationship
-
-Connect issues to releases.
-
-Example:
-
-```python
-release = models.ForeignKey(
-    "Release",
-    on_delete=models.SET_NULL,
-    null=True,
-    blank=True,
-    related_name="issues"
-)
-```
-
-### Filtering and Search
-
-Add backend query filtering.
-
-Example:
-
-```txt
-/api/issues/?status=qa_ready&priority=high
-```
-
-### Database Indexes
-
-Add indexes for common reporting fields.
-
-Example:
-
-```python
-class Meta:
-    indexes = [
-        models.Index(fields=["status"]),
-        models.Index(fields=["priority"]),
-        models.Index(fields=["environment"]),
-    ]
-```
-
-### Basic Error Logging
-
-Add Django logging configuration for easier debugging.
-
-### Simulated AI Summary
-
-Add a no-cost simulated AI summary feature.
-
-Example output:
-
-```txt
-This appears to be a high-priority QA issue affecting login behavior.
-Recommended next step: inspect frontend click handler and backend auth response.
-```
-
-This can be used to discuss AI feature implementation patterns without using paid APIs.
+- Add password change flow
+- Add audit logging for sensitive actions
+- Add production-ready Django settings
+- Add HTTPS-only secure cookie settings
+- Add stricter CORS configuration
+- Add production logging and monitoring
+- Add rate limiting for login attempts
+- Add role management only for Admin users
 
 ---
 
-## Cloud Deployment Options
+## Future Improvements
 
-Optional deployment platforms:
+Potential next steps:
 
-- Render
-- Railway
-- Fly.io
-- DigitalOcean App Platform
-- AWS Elastic Beanstalk
-- AWS ECS
-
-For this project, local Docker Compose is enough for the main learning goal.
-
-If deploying, recommended approach:
-
-1. Deploy backend API
-2. Deploy PostgreSQL database
-3. Configure environment variables
-4. Deploy frontend
-5. Update `VITE_API_BASE_URL`
-6. Test CORS settings
-7. Run migrations
-8. Validate API and frontend workflows
-
----
-
-## Interview Talking Points
-
-This project can be described in an interview like this:
-
-> To prepare for this role, I built a small Django and React internal tool called ReleaseDesk. It tracks user-reported issues, release status, QA notes, and deployment logs. I used Django REST Framework for the API, React/Vite for the frontend, PostgreSQL for the database, and Docker Compose to run the backend, frontend, and database together.
-
-A stronger version:
-
-> I chose this project because it mirrors the kind of internal web application work described in the role: bug tracking, reporting workflows, QA validation, release support, and platform maintenance. It also helped me strengthen my Django-specific understanding while connecting to my SRE experience with deployments, testing, production validation, and stakeholder communication.
-
-Key concepts practiced:
-
-- Django project and app structure
-- Models and migrations
-- Django REST Framework serializers and viewsets
-- RESTful API design
-- React API consumption
-- Loading and error states
-- PostgreSQL database integration
-- Docker Compose multi-service development
-- Manual QA validation
-- Automated backend tests
-- Technical documentation
-- Production-readiness mindset
-
----
-
-## Current Status
-
-Planned development timeline:
-
-```txt
-Day 2: Django backend foundation
-Day 3: Django REST Framework APIs
-Day 4: React frontend
-Day 5: PostgreSQL, Docker, Docker Compose, Linux practice
-Day 6: Testing, QA workflow, documentation, optional cloud prep
-```
-
----
-
-## Lessons Practiced
-
-By completing this project, the developer should be able to explain:
-
-- How Django models map to database tables
-- How migrations manage schema changes
-- How serializers validate and transform API data
-- How React communicates with a Django backend
-- How CORS affects local development
-- How Docker Compose connects backend, frontend, and database services
-- How tests and QA checklists support release confidence
-- How internal applications require both feature development and operational thinking
+- Add frontend tests
+- Add filtering and search for issues/releases
+- Add pagination for large tables
+- Add QA notes edit/delete UI
+- Add release readiness dashboard card
+- Add audit logging for sensitive actions
+- Add password change flow
+- Add role management page for Admin users
+- Add production-ready Docker configuration
+- Add deployment pipeline
+- Add AI-generated release summaries or QA summaries
 
 ---
 
