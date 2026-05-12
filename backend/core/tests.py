@@ -3,12 +3,25 @@ from datetime import date
 
 from rest_framework import status
 from rest_framework.test import APITestCase
+from django.contrib.auth.models import User, Group
 
 from .models import Issue, Release, QANote, DeploymentLog
 
+class AuthenticatedAPITestCase(APITestCase):
+    """Base test case for API tests that require an authenticated app user."""
 
-class IssueAPITests(APITestCase):
     def setUp(self):
+        self.admin_group, _ = Group.objects.get_or_create(name="Admin")
+        self.authenticated_user = User.objects.create_user(
+            username="authenticated_admin",
+            password="testpass123",
+        )
+        self.authenticated_user.groups.add(self.admin_group)
+        self.client.force_login(self.authenticated_user)
+
+class IssueAPITests(AuthenticatedAPITestCase):
+    def setUp(self):
+        super().setUp()
         self.issue = Issue.objects.create(
             title="Login button does not respond",
             description="Users cannot submit the login form in QA.",
@@ -95,8 +108,9 @@ class IssueAPITests(APITestCase):
         self.assertEqual(Issue.objects.count(), 0)
 
 
-class ReleaseAPITests(APITestCase):
+class ReleaseAPITests(AuthenticatedAPITestCase):
     def setUp(self):
+        super().setUp()
         self.release = Release.objects.create(
             name="May Internal Tools Release",
             release_date=date(2026, 5, 12),
@@ -171,8 +185,9 @@ class ReleaseAPITests(APITestCase):
         self.assertEqual(Release.objects.count(), 0)
 
 
-class QANoteAPITests(APITestCase):
+class QANoteAPITests(AuthenticatedAPITestCase):
     def setUp(self):
+        super().setUp()
         self.issue = Issue.objects.create(
             title="Search results missing records",
             description="Search page does not return expected results.",
@@ -258,8 +273,9 @@ class QANoteAPITests(APITestCase):
         self.assertEqual(QANote.objects.count(), 0)
 
 
-class DeploymentLogAPITests(APITestCase):
+class DeploymentLogAPITests(AuthenticatedAPITestCase):
     def setUp(self):
+        super().setUp()
         self.release = Release.objects.create(
             name="May Internal Tools Release",
             release_date=date(2026, 5, 12),
@@ -344,8 +360,9 @@ class DeploymentLogAPITests(APITestCase):
         self.assertEqual(DeploymentLog.objects.count(), 0)
 
 
-class DashboardSummaryAPITests(APITestCase):
+class DashboardSummaryAPITests(AuthenticatedAPITestCase):
     def setUp(self):
+        super().setUp()
         self.issue_open = Issue.objects.create(
             title="Open issue",
             description="Open issue description.",
@@ -432,8 +449,9 @@ class DashboardSummaryAPITests(APITestCase):
         self.assertEqual(deployment["environment"], "qa")
         self.assertEqual(deployment["status"], "successful")
         
-class ReleaseReadinessAPITests(APITestCase):
+class ReleaseReadinessAPITests(AuthenticatedAPITestCase):
     def setUp(self):
+        super().setUp()
         self.prod_test_release = Release.objects.create(
             name="Prod Test Release",
             release_date=date(2026, 5, 20),
@@ -496,4 +514,173 @@ class ReleaseReadinessAPITests(APITestCase):
         self.assertEqual(response.data["release_blockers"], 0)
         self.assertTrue(response.data["ready_for_release"])
 
-        
+class RBACSessionAuthTests(APITestCase):
+    def setUp(self):
+        self.admin_group = Group.objects.create(name="Admin")
+        self.developer_group = Group.objects.create(name="Developer")
+        self.qa_group = Group.objects.create(name="QA")
+        self.viewer_group = Group.objects.create(name="Viewer")
+
+        self.admin_user = User.objects.create_user(
+            username="adminuser",
+            password="testpass123",
+        )
+        self.admin_user.groups.add(self.admin_group)
+
+        self.developer_user = User.objects.create_user(
+            username="developeruser",
+            password="testpass123",
+        )
+        self.developer_user.groups.add(self.developer_group)
+
+        self.qa_user = User.objects.create_user(
+            username="qauser",
+            password="testpass123",
+        )
+        self.qa_user.groups.add(self.qa_group)
+
+        self.viewer_user = User.objects.create_user(
+            username="vieweruser",
+            password="testpass123",
+        )
+        self.viewer_user.groups.add(self.viewer_group)
+
+        self.issue = Issue.objects.create(
+            title="RBAC test issue",
+            description="Issue used for RBAC tests.",
+            issue_type="bug",
+            priority="medium",
+            status="new",
+            reported_by="QA Analyst",
+            assigned_to="Jacqueline",
+            environment="qa",
+        )
+
+        self.release = Release.objects.create(
+            name="RBAC Test Release",
+            release_date=date(2026, 5, 20),
+            status="planned",
+            summary="Release used for RBAC tests.",
+        )
+
+    def test_unauthenticated_user_cannot_access_issues(self):
+        response = self.client.get("/api/issues/")
+
+        self.assertIn(
+            response.status_code,
+            [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN],
+        )
+
+    def test_viewer_can_read_issues(self):
+        self.client.force_login(self.viewer_user)
+
+        response = self.client.get("/api/issues/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_viewer_cannot_create_issue(self):
+        self.client.force_login(self.viewer_user)
+
+        payload = {
+            "title": "Viewer should not create",
+            "description": "Viewer should receive forbidden.",
+            "issue_type": "bug",
+            "priority": "medium",
+            "status": "new",
+            "reported_by": "Viewer",
+            "assigned_to": "Jacqueline",
+            "environment": "qa",
+        }
+
+        response = self.client.post("/api/issues/", payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_developer_can_create_issue(self):
+        self.client.force_login(self.developer_user)
+
+        payload = {
+            "title": "Developer-created issue",
+            "description": "Developer should be allowed to create issues.",
+            "issue_type": "bug",
+            "priority": "medium",
+            "status": "new",
+            "reported_by": "Developer",
+            "assigned_to": "Jacqueline",
+            "environment": "qa",
+        }
+
+        response = self.client.post("/api/issues/", payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_developer_cannot_delete_issue(self):
+        self.client.force_login(self.developer_user)
+
+        response = self.client.delete(f"/api/issues/{self.issue.id}/")
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_can_delete_issue(self):
+        self.client.force_login(self.admin_user)
+
+        response = self.client.delete(f"/api/issues/{self.issue.id}/")
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_qa_can_create_qa_note(self):
+        self.client.force_login(self.qa_user)
+
+        payload = {
+            "issue": self.issue.id,
+            "tester_name": "QA User",
+            "result": "pass",
+            "notes": "QA user should be allowed to create QA notes.",
+        }
+
+        response = self.client.post("/api/qa-notes/", payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_qa_cannot_create_release(self):
+        self.client.force_login(self.qa_user)
+
+        payload = {
+            "name": "QA should not create release",
+            "release_date": "2026-06-01",
+            "status": "planned",
+            "summary": "QA should receive forbidden.",
+        }
+
+        response = self.client.post("/api/releases/", payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_session_user_returns_logged_in_user_and_roles(self):
+        self.client.force_login(self.developer_user)
+
+        response = self.client.get("/api/session-user/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["username"], "developeruser")
+        self.assertIn("Developer", response.data["roles"])
+
+    def test_login_with_invalid_credentials_fails(self):
+        response = self.client.post(
+            "/api/login/",
+            {"username": "baduser", "password": "badpass"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_login_with_valid_credentials_succeeds(self):
+        response = self.client.post(
+            "/api/login/",
+            {"username": "developeruser", "password": "testpass123"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["username"], "developeruser")
+        self.assertIn("Developer", response.data["roles"])     

@@ -3,13 +3,22 @@ import DataTable from '../components/dataTable';
 import ResourceForm from '../components/ResourceForm';
 import BackButton from '../components/BackButton';
 import useResourceCrud from '../hooks/useResourceCrud';
+import { useAuth } from '../context/AuthContext';
 import {
     getDeploymentLogs,
     getReleases,
     createDeploymentLog,
 } from '../api/releaseDeskApi';
+import AuthStatus from '../components/AuthStatus';
 
 function DeploymentLogs() {
+    const { hasRole } = useAuth();
+
+    const canCreateDeploymentLog = (
+        hasRole('Admin') ||
+        hasRole('Developer') ||
+        hasRole('QA')
+    );
     const [releases, setReleases] = useState([]);
     const [releaseError, setReleaseError] = useState(null);
 
@@ -131,23 +140,25 @@ function DeploymentLogs() {
 
     return (
         <div className="deployment-logs">
+            <AuthStatus/>
             <BackButton />
             <h1>Deployment Logs</h1>
 
             {error && <p className="error-message">{error}</p>}
             {releaseError && <p className="error-message">{releaseError}</p>}
-
-            <ResourceForm
-                title="Create Deployment Log"
-                fields={deploymentLogFields}
-                formData={formData}
-                onChange={handleChange}
-                onSubmit={handleSubmit}
-                submitting={submitting}
-                submitLabel="Create Deployment Log"
-                submittingLabel="Creating..."
-                className="deployment-log-form"
-            />
+            {canCreateDeploymentLog && (
+                <ResourceForm
+                    title="Create Deployment Log"
+                    fields={deploymentLogFields}
+                    formData={formData}
+                    onChange={handleChange}
+                    onSubmit={handleSubmit}
+                    submitting={submitting}
+                    submitLabel="Create Deployment Log"
+                    submittingLabel="Creating..."
+                    className="deployment-log-form"
+                />
+            )}
 
             <section className="deployment-log-list-section">
                 <h2>Deployment Log List</h2>

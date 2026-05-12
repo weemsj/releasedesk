@@ -5,6 +5,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000
 
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
+    withCredentials: true, // Include cookies for authentication
     headers: {
         'Content-Type': 'application/json',
     },
@@ -58,7 +59,10 @@ const getData = async (endpoint, fallbackMessage = 'Unable to load data.') => {
 
 const createData = async (endpoint, payload, fallbackMessage = 'Unable to create record.') => {
     try {
-        const response = await apiClient.post(endpoint, payload);
+        const csrfHeaders = await getCsrfHeaders();
+        const response = await apiClient.post(endpoint, payload, {
+            headers: csrfHeaders,
+        });
         return response.data;
     } catch (error) {
         handleApiError(error, fallbackMessage);
@@ -67,7 +71,10 @@ const createData = async (endpoint, payload, fallbackMessage = 'Unable to create
 
 const updateData = async (endpoint, id, payload, fallbackMessage = 'Unable to update record.') => {
     try {
-        const response = await apiClient.patch(`${endpoint}${id}/`, payload);
+        const csrfHeaders = await getCsrfHeaders();
+        const response = await apiClient.patch(`${endpoint}${id}/`, payload, {
+            headers: csrfHeaders,
+        });
         return response.data;
     } catch (error) {
         handleApiError(error, fallbackMessage);
@@ -76,7 +83,10 @@ const updateData = async (endpoint, id, payload, fallbackMessage = 'Unable to up
 
 const deleteData = async (endpoint, id, fallbackMessage = 'Unable to delete record.') => {
     try {
-        await apiClient.delete(`${endpoint}${id}/`);
+        const csrfHeaders = await getCsrfHeaders();
+        await apiClient.delete(`${endpoint}${id}/`, {
+            headers: csrfHeaders,
+        });
     } catch (error) {
         handleApiError(error, fallbackMessage);
     }
@@ -100,5 +110,89 @@ export const getDeploymentLogs = () => getData('/deployment-logs/', 'Unable to l
 export const createDeploymentLog = (payload) => createData('/deployment-logs/', payload, 'Unable to create deployment log.');
 export const updateDeploymentLog = (id, payload) => updateData('/deployment-logs/', id, payload, 'Unable to update deployment log.');
 export const deleteDeploymentLog = (id) => deleteData('/deployment-logs/', id, 'Unable to delete deployment log.');
+export const getQANotes = () => (getData('/qa-notes/', 'Unable to load QA notes.'));
+export const createQANote = (payload) => (createData('/qa-notes/', payload, 'Unable to create QA note.'));
+export const updateQANote = (id, payload) => (updateData('/qa-notes/', id, payload, 'Unable to update QA note.'));
+export const deleteQANote = (id) => (deleteData('/qa-notes/', id, 'Unable to delete QA note.'));
+
+const getCookie = (name) => {
+    const cookies = document.cookie ? document.cookie.split('; ') : [];
+
+    const matchingCookie = cookies.find((cookie) => (
+        cookie.startsWith(`${name}=`)
+    ));
+
+    if (!matchingCookie) {
+        return null;
+    }
+
+    return decodeURIComponent(matchingCookie.split('=')[1]);
+};
+
+export const getCsrfToken = async () => {
+    try {
+        const response = await apiClient.get('/csrf/');
+        return response.data.csrfToken;
+    } catch (error) {
+        handleApiError(error, 'Unable to get CSRF token.');
+    }
+};
+
+const getCsrfHeaders = async () => {
+    const tokenFromResponse = await getCsrfToken();
+    const tokenFromCookie = getCookie('csrftoken');
+
+    return {
+        'X-CSRFToken': tokenFromCookie || tokenFromResponse,
+    };
+};
+
+export const loginUser = async (credentials) => {
+    try {
+        const csrfHeaders = await getCsrfHeaders();
+
+        const response = await apiClient.post('/login/', credentials, {
+            headers: csrfHeaders,
+        });
+
+        return response.data;
+    } catch (error) {
+        handleApiError(error, 'Unable to log in.');
+    }
+};
+
+export const logoutUser = async () => {
+    try {
+        const csrfHeaders = await getCsrfHeaders();
+
+        const response = await apiClient.post('/logout/', {}, {
+            headers: csrfHeaders,
+        });
+
+        return response.data;
+    } catch (error) {
+        handleApiError(error, 'Unable to log out.');
+    }
+};
+
+export const getSessionUser = () => (
+    getData('/session-user/', 'Unable to load current session user.')
+);
+
+export const updateSessionUser = async (payload) => {
+    try {
+        const csrfHeaders = await getCsrfHeaders();
+
+        const response = await apiClient.patch('/session-user/', payload, {
+            headers: csrfHeaders,
+        });
+
+        return response.data;
+    } catch (error) {
+        handleApiError(error, 'Unable to update account.');
+    }
+};
+
+
 
 export default apiClient;

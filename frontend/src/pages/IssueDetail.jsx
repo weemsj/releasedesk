@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';   
+import { useParams } from 'react-router-dom';
 import { getIssue } from '../api/releaseDeskApi';
+import QANotesPanel from '../components/QANotesPanel';
 import BackButton from '../components/BackButton';
+import AuthStatus from '../components/AuthStatus';
 
 function IssueDetail() {
     const { id } = useParams(); // Get issue ID from URL parameters
@@ -46,6 +48,7 @@ function IssueDetail() {
     }
     return (
         <div className="issue-detail">
+            <AuthStatus/>
             <BackButton label="Back to Issues" className="back-button" />
             <h1>Issue Detail</h1>
             <h2>{issue.title}</h2>
@@ -58,6 +61,9 @@ function IssueDetail() {
             <p><strong>Environment:</strong> {issue.environment}</p>
             <p><strong>Created At:</strong> {issue.created_at}</p>
             <p><strong>Updated At:</strong> {issue.updated_at}</p>
+            <p><strong>Updated At:</strong> {issue.updated_at}</p>
+
+            <QANotesPanel issueId={issue.id} />
         </div>
     );
 }

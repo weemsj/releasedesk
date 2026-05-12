@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext'
 import { getDashboardSummary } from '../api/releaseDeskApi';
 import DashboardCard from '../components/DashboardCard';
+import AuthStatus from '../components/AuthStatus';
 
 function Dashboard() {
+    const { user } = useAuth();
     const [stats, setStats] = useState({
         open_issues: 0,
         critical_issues: 0,
@@ -41,7 +44,13 @@ function Dashboard() {
     
     return (
         <div className="dashboard">
+            <AuthStatus />
             <h1>ReleaseDesk Dashboard</h1>
+            {user && (
+                <p className='welcome-message'>
+                    Welcome back, {user.first_name || user.username}.
+                </p>
+            )}
             <div className="dashboard-layout-grid">
                 <div className="dashboard-stat-row dashboard-stat-row-two-columns">
                     <Link to="/issues" className="dashboard-link-card">

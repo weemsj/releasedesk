@@ -16,9 +16,15 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from core.views import csrf_token, login_view, logout_view, session_user
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
+    path('api/csrf/', csrf_token, name='csrf-token'),
+    path('api/login/', login_view, name='login'),
+    path('api/logout/', logout_view, name='logout'),
+    path('api/session-user/', session_user, name='session-user'),
     path('api/', include('core.urls')),
 ]

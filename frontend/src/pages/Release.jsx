@@ -2,13 +2,17 @@ import DataTable from '../components/dataTable';
 import ResourceForm from '../components/ResourceForm';
 import useResourceCrud from '../hooks/useResourceCrud';
 import BackButton from '../components/BackButton';
+import { useAuth } from '../context/AuthContext';
 import {
     getReleases,
     createRelease,
     updateRelease,
 } from '../api/releaseDeskApi';
+import AuthStatus from '../components/AuthStatus';
 
 function Release() {
+    const { hasRole } = useAuth();
+    const canManageReleases =hasRole('Admin') || hasRole('Developer');
     const initialReleaseFormData = {
         name: '',
         release_date: '',
@@ -47,12 +51,18 @@ function Release() {
         { key: 'status', header: 'Status' },
         { key: 'summary', header: 'Summary' },
         {
-            key: 'actions',
-            header: 'Actions',
-            render: (release) => (
-                <button type="button" onClick={() => handleEditClick(release)}>
-                    Edit
-                </button>
+          key: 'actions',
+          header: 'Actions',
+          render: (release) => (
+                <>
+                    {canManageReleases ? (
+                        <button type="button" onClick={() => handleEditClick(release)}>
+                        Edit
+                        </button>
+                    ) : (
+                        <span>View only</span>
+                    )}
+                </>
             ),
         },
     ];
@@ -97,11 +107,12 @@ function Release() {
 
     return (
         <div className="releases">
+        <AuthStatus/>
             <BackButton />
             <h1>Releases</h1>
 
             {error && <p className="error-message">{error}</p>}
-
+        {canManageReleases && (
             <ResourceForm
                 title={editingReleaseId ? `Edit Release #${editingReleaseId}` : 'Create Release'}
                 fields={releaseFields}
@@ -115,7 +126,7 @@ function Release() {
                 onCancel={resetForm}
                 cancelLabel="Cancel Edit"
                 className="release-form"
-            />
+            />)}
 
             <section className="release-list-section">
                 <h2>Release List</h2>

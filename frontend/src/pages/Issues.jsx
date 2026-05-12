@@ -3,14 +3,20 @@ import DataTable from '../components/dataTable';
 import ResourceForm from '../components/ResourceForm';
 import useResourceCrud from '../hooks/useResourceCrud';
 import BackButton from '../components/BackButton';
+import { useAuth } from '../context/AuthContext';
 import {
     getIssues,
     createIssue,
     updateIssue,
     deleteIssue,
 } from '../api/releaseDeskApi';
+import AuthStatus from '../components/AuthStatus';
 
 function Issues() {
+    const { hasRole } = useAuth();
+    
+    const canManageIssues = hasRole('Admin') || hasRole('Developer');
+    const canDeleteIssues = hasRole('Admin');
     const initialIssueFormData = {
         title: '',
         description: '',
@@ -68,10 +74,18 @@ function Issues() {
             render: (issue) => (
                 <>
                     <Link to={`/issues/${issue.id}`}>View</Link>
-                    {' | '}
-                    <button type="button" onClick={() => handleEditClick(issue)}>Edit</button>
-                    {' | '}
-                    <button type="button" onClick={() => handleDeleteClick(issue)}>Delete</button>
+                    {canManageIssues && (
+                        <>
+                        {' | '}
+                        <button type="button" onClick={() => handleEditClick(issue)}>Edit</button>
+                        </>
+                    )}
+                    {canDeleteIssues && (
+                        <>
+                        {' | '}
+                        <button type="button" onClick={() => handleDeleteClick(issue)}>Delete</button>
+                        </>
+                    )}     
                 </>
             ),
         },
@@ -155,11 +169,12 @@ function Issues() {
 
     return (
         <div className="issues-page">
+        <AuthStatus/>
         <BackButton />
             <h1>Issues</h1>
 
             {error && <p className="error-message">{error}</p>}
-
+        {canManageIssues && (
             <ResourceForm
                 title={editingIssueId ? 'Edit Issue' : 'Create Issue'}
                 fields={issueFields}
@@ -174,6 +189,7 @@ function Issues() {
                 cancelLabel="Cancel Edit"
                 className="create-issue-form"
             />
+        )}
 
             <section className="issues-list-section">
                 <h2>Issue List</h2>
@@ -183,6 +199,7 @@ function Issues() {
                     data={issues}
                     emptyMessage="No issues found."
                 />
+        
             </section>
         </div>
     );
