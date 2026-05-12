@@ -683,4 +683,94 @@ class RBACSessionAuthTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["username"], "developeruser")
-        self.assertIn("Developer", response.data["roles"])     
+        self.assertIn("Developer", response.data["roles"])
+    
+    def test_csrf_endpoint_returns_token(self):
+        response = self.client.get("/api/csrf/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("csrfToken", response.data)
+        self.assertTrue(response.data["csrfToken"])
+    
+    def test_logout_clears_authenticated_session(self):
+        self.client.force_login(self.developer_user)
+        response = self.client.post("/api/logout/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        session_response = self.client.get("/api/session-user/")
+        self.assertIn(
+            session_response.status_code,
+            [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN],
+        )
+    
+    def test_authenticated_user_can_update_own_account(self):
+        self.client.force_login(self.developer_user)
+
+        payload = {
+            "username": "updated_developer",
+            "email": "updated@example.com",
+            "first_name": "Dev",
+            "last_name": "User",
+        }
+        response = self.client.patch("/api/session-user/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["username"], "updated_developer")
+        self.assertEqual(response.data["email"], "updated@example.com")
+        self.assertEqual(response.data["first_name"], "Dev")
+        self.assertEqual(response.data["last_name"], "User")
+        
+    def test_user_cannot_update_own_roles_through_account_endpoint(self):
+        self.client.force_login(self.viewer_user)
+
+        payload = {
+            "username": "vieweruser",
+            "roles": ["Admin"],
+            "is_superuser": True,
+            "is_staff": True,
+        }
+        response = self.client.patch("/api/session-user/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.viewer_user.refresh_from_db()
+        self.assertFalse(self.viewer_user.is_superuser)
+        self.assertFalse(self.viewer_user.is_staff)
+        self.assertFalse(self.viewer_user.groups.filter(name="Admin").exists())
+        self.assertTrue(self.viewer_user.groups.filter(name="Viewer").exists())
+        
+    def test_developer_cannot_create_qa_note(self):
+        self.client.force_login(self.developer_user)
+        payload = {
+            "issue": self.issue.id,
+            "tester_name": "Developer User",
+            "result": "pass",
+            "notes": "Developer should not be allowed to create QA notes.",
+        }
+        response = self.client.post("/api/qa-notes/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+    
+    def test_viewer_cannot_create_deployment_log(self):
+        self.client.force_login(self.viewer_user)
+
+        payload = {
+            "release": self.release.id,
+            "environment": "qa",
+            "status": "started",
+            "notes": "Viewer should not create deployment logs.",
+            "deployed_by": "Viewer User",
+        }
+        response = self.client.post("/api/deployment-logs/", payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        
+    def test_qa_can_create_deployment_log(self):
+        self.client.force_login(self.qa_user)
+
+        payload = {
+            "release": self.release.id,
+            "environment": "qa",
+            "status": "successful",
+            "notes": "QA validated deployment successfully.",
+            "deployed_by": "QA User",
+        }
+
+        response = self.client.post("/api/deployment-logs/", payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
